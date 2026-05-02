@@ -164,6 +164,54 @@ export const VOICES = [
     description: "Cozy and grandmotherly",
     emoji: "🍪",
   },
+  {
+    id: "g6xIsTj2HwM6VR4iXFCw",
+    name: "Jessie",
+    description: "American — friendly and bright",
+    emoji: "🌼",
+  },
+  {
+    id: "OYTbf65OHHFELVut7v2H",
+    name: "Hope",
+    description: "American — upbeat and warm",
+    emoji: "🌈",
+  },
+  {
+    id: "kdmDKE6EkgrWrrykO9Qt",
+    name: "Alexandra",
+    description: "American — clear and conversational",
+    emoji: "🌻",
+  },
+  {
+    id: "L0Dsvb3SLTyegXwtm47J",
+    name: "Archer",
+    description: "American — soft storyteller",
+    emoji: "🍯",
+  },
+  {
+    id: "PT4nqlKZfc06VW1BuClj",
+    name: "Angela",
+    description: "American — playful and kind",
+    emoji: "🌺",
+  },
+  {
+    id: "56AoDkrOh6qfVPDXZ7Pt",
+    name: "Cassidy",
+    description: "American — confident and cozy",
+    emoji: "🍂",
+  },
+  {
+    id: "OBNoHv4kbAj2nT9NUz7n",
+    name: "Maple",
+    description: "Canadian — sweet and gentle",
+    emoji: "🍁",
+  },
+  {
+    id: "ZF6FPAbjXT4488VcRRnw",
+    name: "Amelia",
+    description: "Canadian — soft and elegant",
+    emoji: "🌾",
+  },
 ] as const;
 
 export type VoiceId = typeof VOICES[number]["id"];

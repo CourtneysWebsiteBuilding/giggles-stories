@@ -9,9 +9,12 @@ const NarrateInput = z.object({
 export const narratePage = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => NarrateInput.parse(input))
   .handler(async ({ data }) => {
-    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const apiKey =
+      process.env.ELEVENLABS_API_KEY ?? globalThis.process?.env?.ELEVENLABS_API_KEY;
     if (!apiKey) {
-      throw new Error("ELEVENLABS_API_KEY is not configured");
+      throw new Error(
+        "ELEVENLABS_API_KEY is not available in the server runtime yet. The dev server may need to restart to pick up the new secret."
+      );
     }
 
     const response = await fetch(

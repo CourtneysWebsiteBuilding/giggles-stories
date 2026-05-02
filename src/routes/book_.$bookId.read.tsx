@@ -60,7 +60,10 @@ function Reader() {
   const narrate = useServerFn(narratePage);
 
   const totalPages = book.pages.length;
-  const currentText = book.pages[pageIdx];
+  const currentPage = book.pages[pageIdx];
+  const currentText = currentPage.text;
+  const currentImage = currentPage.image ?? book.cover;
+  const hideCaption = currentPage.textInImage === true;
 
   function stopAudio() {
     if (audioRef.current) {
@@ -150,7 +153,7 @@ function Reader() {
         >
           <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted sm:aspect-[3/2]">
             <img
-              src={book.cover}
+              src={currentImage}
               alt={`Illustration for ${book.title} page ${pageIdx + 1}`}
               className="h-full w-full object-cover"
             />
@@ -161,16 +164,20 @@ function Reader() {
               }}
             />
           </div>
-          <div className="p-6 md:p-10">
-            <p className="font-display text-xl leading-relaxed text-foreground md:text-2xl md:leading-relaxed">
-              {currentText}
-            </p>
-            {error && (
-              <p className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </p>
-            )}
-          </div>
+          {(!hideCaption || error) && (
+            <div className="p-6 md:p-10">
+              {!hideCaption && (
+                <p className="font-display text-xl leading-relaxed text-foreground md:text-2xl md:leading-relaxed">
+                  {currentText}
+                </p>
+              )}
+              {error && (
+                <p className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+            </div>
+          )}
         </article>
 
         {/* Page indicator */}

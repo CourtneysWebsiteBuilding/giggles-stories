@@ -113,8 +113,8 @@ function Reader() {
   const currentPage = book.pages[pageIdx];
   const currentText = currentPage.text;
   const currentImage = currentPage.image ?? book.cover;
-  // Show synced caption strip when text is baked into the illustration.
-  const showSyncedCaption = currentPage.textInImage === true;
+  // Word-by-word highlighting is only enabled for the moon book for now.
+  const highlightEnabled = book.id === "moon";
 
   const words = useMemo(
     () => buildWords(currentText, alignment),
@@ -261,12 +261,11 @@ function Reader() {
               className="block h-auto w-full"
             />
           </div>
-          {(showSyncedCaption || book.id === "moon" || true) && (
-            <div className="p-6 md:p-10">
+          <div className="p-6 md:p-10">
               <p className="font-display text-xl leading-relaxed text-foreground md:text-2xl md:leading-relaxed">
-                {words.map((w, i) => {
+                {(highlightEnabled ? words : [{ text: currentText, start: -1, end: -1 }]).map((w, i) => {
                   if (/^\s+$/.test(w.text)) return <span key={i}>{w.text}</span>;
-                  const isActive = i === activeWord;
+                  const isActive = highlightEnabled && i === activeWord;
                   return (
                     <span
                       key={i}
@@ -291,8 +290,7 @@ function Reader() {
                   {error}
                 </p>
               )}
-            </div>
-          )}
+          </div>
         </article>
 
         {/* Page indicator */}

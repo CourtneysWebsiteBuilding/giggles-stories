@@ -1,9 +1,56 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { getBook, VOICES, type VoiceId } from "@/data/books";
 import { useServerFn } from "@tanstack/react-start";
 import { narratePage } from "@/server/narrate.functions";
+type Alignment = {
+  characters: string[];
+  character_start_times_seconds: number[];
+  character_end_times_seconds: number[];
+};
+
+type CachedNarration = { url: string; alignment: Alignment | null };
+
+type Word = { text: string; start: number; end: number };
+
+function buildWords(text: string, alignment: Alignment | null): Word[] {
+  // Tokenize the source text into word-or-space chunks so render order matches input exactly.
+  const tokens = text.match(/\S+|\s+/g) ?? [];
+  if (!alignment) {
+    return tokens.map((t) => ({ text: t, start: -1, end: -1 }));
+  }
+
+  // Walk the alignment characters in lockstep with the source text. ElevenLabs
+  // returns one timing per character of the synthesized text, so a simple cursor
+  // works as long as we tolerate occasional whitespace mismatches.
+  const chars = alignment.characters;
+  const starts = alignment.character_start_times_seconds;
+  const ends = alignment.character_end_times_seconds;
+  let cur = 0;
+  const out: Word[] = [];
+  for (const tok of tokens) {
+    if (/^\s+$/.test(tok)) {
+      // advance past any whitespace chars in alignment
+      while (cur < chars.length && /\s/.test(chars[cur])) cur++;
+      out.push({ text: tok, start: -1, end: -1 });
+      continue;
+    }
+    let start = -1;
+    let end = -1;
+    for (let i = 0; i < tok.length; i++) {
+      // Skip whitespace in alignment that doesn't correspond to a token char
+      while (cur < chars.length && /\s/.test(chars[cur])) cur++;
+      if (cur >= chars.length) break;
+      if (start < 0) start = starts[cur];
+      end = ends[cur];
+      cur++;
+    }
+    out.push({ text: tok, start, end });
+  }
+  return out;
+}
+
 
 const SearchSchema = z.object({
   voice: z.string().optional(),
@@ -55,36 +102,77 @@ function Reader() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alignment, setAlignment] = useState<Alignment | null>(null);
+  const [activeWord, setActiveWord] = useState<number>(-1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const cacheRef = useRef<Map<string, string>>(new Map());
+  const cacheRef = useRef<Map<string, CachedNarration>>(new Map());
+  const rafRef = useRef<number | null>(null);
   const narrate = useServerFn(narratePage);
 
   const totalPages = book.pages.length;
   const currentPage = book.pages[pageIdx];
   const currentText = currentPage.text;
   const currentImage = currentPage.image ?? book.cover;
-  const hideCaption = currentPage.textInImage === true;
+  // Word-by-word highlighting is only enabled for the moon book for now.
+  const highlightEnabled = book.id === "moon";
+
+  const words = useMemo(
+    () => buildWords(currentText, alignment),
+    [currentText, alignment]
+  );
 
   function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    setActiveWord(-1);
     setIsPlaying(false);
+  }
+
+  function startTracking(audio: HTMLAudioElement, currentWords: Word[]) {
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    let lastIdx = -1;
+    const tick = () => {
+      const t = audio.currentTime;
+      // Find the latest word whose start <= t; binary search would be overkill here.
+      let idx = -1;
+      for (let i = 0; i < currentWords.length; i++) {
+        const w = currentWords[i];
+        if (w.start < 0) continue;
+        if (t >= w.start) idx = i;
+        else break;
+      }
+      if (idx !== lastIdx) {
+        lastIdx = idx;
+        setActiveWord(idx);
+      }
+      if (!audio.paused && !audio.ended) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
   }
 
   async function playCurrent() {
     setError(null);
     const cacheKey = `${voiceId}:${pageIdx}`;
-    let url = cacheRef.current.get(cacheKey);
-    if (!url) {
+    let cached = cacheRef.current.get(cacheKey);
+    if (!cached) {
       setLoading(true);
       try {
         const res = await narrate({
           data: { text: currentText, voiceId },
         });
-        url = `data:audio/mpeg;base64,${res.audio}`;
-        cacheRef.current.set(cacheKey, url);
+        cached = {
+          url: `data:audio/mpeg;base64,${res.audio}`,
+          alignment: res.alignment ?? null,
+        };
+        cacheRef.current.set(cacheKey, cached);
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Could not load audio";
         setError(msg);
@@ -93,9 +181,18 @@ function Reader() {
       }
       setLoading(false);
     }
-    const audio = new Audio(url);
+    setAlignment(cached.alignment);
+    const wordsForAudio = buildWords(currentText, cached.alignment);
+    const audio = new Audio(cached.url);
     audioRef.current = audio;
-    audio.onended = () => setIsPlaying(false);
+    audio.onended = () => {
+      setIsPlaying(false);
+      setActiveWord(-1);
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
     audio.onerror = () => {
       setIsPlaying(false);
       setError("Audio could not play.");
@@ -103,6 +200,7 @@ function Reader() {
     setIsPlaying(true);
     try {
       await audio.play();
+      startTracking(audio, wordsForAudio);
     } catch {
       setIsPlaying(false);
     }
@@ -111,6 +209,8 @@ function Reader() {
   // Auto-play on page change
   useEffect(() => {
     stopAudio();
+    setAlignment(null);
+    setActiveWord(-1);
     playCurrent();
     return () => stopAudio();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,33 +251,46 @@ function Reader() {
           className="mt-6 overflow-hidden rounded-3xl bg-card shadow-book ring-1 ring-black/5"
           style={{ animation: "fadeIn 0.4s ease-out" }}
         >
-          <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted sm:aspect-[3/2]">
+          <div
+            className="w-full overflow-hidden"
+            style={{ backgroundColor: "#0b1230" }}
+          >
             <img
               src={currentImage}
               alt={`Illustration for ${book.title} page ${pageIdx + 1}`}
-              className="h-full w-full object-cover"
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(180deg, transparent 40%, ${book.accent}22 100%)`,
-              }}
+              className="block h-auto w-full"
             />
           </div>
-          {(!hideCaption || error) && (
-            <div className="p-6 md:p-10">
-              {!hideCaption && (
-                <p className="font-display text-xl leading-relaxed text-foreground md:text-2xl md:leading-relaxed">
-                  {currentText}
-                </p>
-              )}
+          <div className="p-6 md:p-10">
+              <p className="font-display text-xl leading-relaxed text-foreground md:text-2xl md:leading-relaxed">
+                {(highlightEnabled ? words : [{ text: currentText, start: -1, end: -1 }]).map((w, i) => {
+                  if (/^\s+$/.test(w.text)) return <span key={i}>{w.text}</span>;
+                  const isActive = highlightEnabled && i === activeWord;
+                  return (
+                    <span
+                      key={i}
+                      className="rounded-md px-0.5 transition-colors duration-150"
+                      style={
+                        isActive
+                          ? {
+                              backgroundColor: `${book.accent}33`,
+                              color: book.accent,
+                              fontWeight: 700,
+                            }
+                          : undefined
+                      }
+                    >
+                      {w.text}
+                    </span>
+                  );
+                })}
+              </p>
               {error && (
                 <p className="mt-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                   {error}
                 </p>
               )}
-            </div>
-          )}
+          </div>
         </article>
 
         {/* Page indicator */}

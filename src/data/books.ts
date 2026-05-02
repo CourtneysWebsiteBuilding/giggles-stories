@@ -123,28 +123,52 @@ export function getBook(id: string): Book | undefined {
 
 export const VOICES = [
   {
-    id: "pFZP5JQG7iQjIQuC4Bku",
-    name: "Lily",
-    description: "Warm and gentle — perfect for bedtime",
-    emoji: "🌸",
-  },
-  {
-    id: "nPczCjzI2devNBz1zQrb",
-    name: "Brian",
-    description: "Fun grandpa storyteller",
-    emoji: "🎩",
-  },
-  {
-    id: "EXAVITQu4vr4xnSDxMaL",
     name: "Sarah",
+    id: "EXAVITQu4vr4xnSDxMaL",
     description: "Bright and bubbly",
     emoji: "🌟",
   },
   {
-    id: "N2lVS1w4EtoT3dr4eOWO",
-    name: "Callum",
-    description: "Playful and full of character",
+    id: "FGY2WhTYpPnrIDTdsKH5",
+    name: "Laura",
+    description: "Warm and friendly — perfect for bedtime",
+    emoji: "🌸",
+  },
+  {
+    id: "XrExE9yKIg1WjnnlVkGX",
+    name: "Matilda",
+    description: "Cheerful and adventurous",
+    emoji: "🎈",
+  },
+  {
+    id: "cgSgspJ2msm6clMCkdW9",
+    name: "Jessica",
+    description: "Playful and full of giggles",
     emoji: "🎭",
+  },
+  {
+    id: "iP95p4xoKVk53GoZ742B",
+    name: "Chris",
+    description: "Cool storytelling buddy",
+    emoji: "🎤",
+  },
+  {
+    id: "cjVigY5qzO86Huf0OWal",
+    name: "Eric",
+    description: "Smooth and reassuring",
+    emoji: "🌙",
+  },
+  {
+    id: "pqHfZKP75CvOlQylNhV4",
+    name: "Bill",
+    description: "Fun grandpa storyteller",
+    emoji: "🎩",
+  },
+  {
+    id: "TX3LPaxmHKxFdv7VOQHJ",
+    name: "Liam",
+    description: "Energetic adventure guide",
+    emoji: "🚀",
   },
 ] as const;
 

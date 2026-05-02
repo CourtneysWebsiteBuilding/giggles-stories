@@ -29,14 +29,12 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Giggle Books — Funny Stories Read Aloud for Kids" },
+      { name: "description", content: "Five original funny picture books for kids, illustrated and read aloud by friendly AI narrators. Pick a book, pick a voice, and start reading." },
+      { property: "og:title", content: "Giggle Books — Funny Stories Read Aloud" },
+      { property: "og:description", content: "Five funny illustrated kids' books with AI narration. Read along or have them read to you." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {

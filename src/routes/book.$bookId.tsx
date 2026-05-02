@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate, Outlet, useMatches } from "@tanstack/react-router";
 import { useState } from "react";
 import { getBook, VOICES, type VoiceId } from "@/data/books";
 import { useServerFn } from "@tanstack/react-start";
@@ -46,6 +46,10 @@ export const Route = createFileRoute("/book/$bookId")({
 });
 
 function BookDetail() {
+  const matches = useMatches();
+  const isReader = matches.some((m) => m.routeId === "/book/$bookId/read");
+  if (isReader) return <Outlet />;
+
   const { book } = Route.useLoaderData();
   const [selectedVoice, setSelectedVoice] = useState<VoiceId>(VOICES[0].id);
   const [previewing, setPreviewing] = useState<string | null>(null);

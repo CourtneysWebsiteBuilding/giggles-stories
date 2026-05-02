@@ -164,7 +164,7 @@ function BookDetail() {
               type="button"
               onClick={() =>
                 navigate({
-                  to: "/book/$bookId/read",
+                  to: "/book_/$bookId/read",
                   params: { bookId: book.id },
                   search: { voice: selectedVoice },
                 })

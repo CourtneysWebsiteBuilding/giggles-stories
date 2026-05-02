@@ -18,7 +18,7 @@ export const narratePage = createServerFn({ method: "POST" })
     }
 
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${data.voiceId}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${data.voiceId}/with-timestamps?output_format=mp3_44100_128`,
       {
         method: "POST",
         headers: {
@@ -44,7 +44,16 @@ export const narratePage = createServerFn({ method: "POST" })
       throw new Error(`TTS failed (${response.status}): ${err.slice(0, 200)}`);
     }
 
-    const buffer = await response.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    return { audio: base64 };
+    const json = (await response.json()) as {
+      audio_base64: string;
+      alignment?: {
+        characters: string[];
+        character_start_times_seconds: number[];
+        character_end_times_seconds: number[];
+      } | null;
+    };
+    return {
+      audio: json.audio_base64,
+      alignment: json.alignment ?? null,
+    };
   });

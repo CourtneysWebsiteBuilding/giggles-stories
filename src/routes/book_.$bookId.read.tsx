@@ -9,7 +9,7 @@ const SearchSchema = z.object({
   voice: z.string().optional(),
 });
 
-export const Route = createFileRoute("/book_/$bookId/read")({
+export const Route = createFileRoute("/book/$bookId/read")({
   validateSearch: SearchSchema,
   loader: ({ params }) => {
     const book = getBook(params.bookId);
